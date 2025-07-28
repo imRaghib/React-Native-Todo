@@ -1,6 +1,8 @@
 import {
   FlatList,
   Image,
+  Keyboard,
+  KeyboardAvoidingView,
   Platform,
   StatusBar,
   StyleSheet,
@@ -10,42 +12,110 @@ import {
   View,
 } from "react-native";
 
+import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import Checkbox from "expo-checkbox";
+import React, { useEffect, useState } from "react";
+
+type TodoType = {
+  id: number;
+  title: string;
+  isDone: boolean;
+};
+
 const HomeScreen = () => {
-  const todoData = [
-    {
-      id: 1,
-      title: "Todo 1",
-      isDone: false,
-    },
-    {
-      id: 2,
-      title: "Todo 2",
-      isDone: false,
-    },
-    {
-      id: 3,
-      title: "Todo 3",
-      isDone: false,
-    },
-    {
-      id: 4,
-      title: "Todo 4",
-      isDone: true,
-    },
-    {
-      id: 5,
-      title: "Todo 5",
-      isDone: false,
-    },
-    {
-      id: 6,
-      title: "Todo 6",
-      isDone: false,
-    },
-  ];
+  const storageKey: string = "my-todos";
+
+  const [todos, setTodos] = useState<TodoType[]>([]);
+  const [todoText, setTodoText] = useState<string>("");
+  const [search, setSearch] = useState<string>("");
+  const [oldTodos, setOldTodos] = useState<TodoType[]>([]);
+
+  useEffect(() => {
+    const getTodos = async () => {
+      try {
+        const savedTodos = await AsyncStorage.getItem(storageKey);
+        if (savedTodos != null) {
+          setTodos(JSON.parse(savedTodos));
+          setOldTodos(JSON.parse(savedTodos));
+        }
+      } catch (e) {
+        console.error("Error Occurred:", e);
+      }
+    };
+    getTodos();
+  }, []);
+
+  const addTodo = async () => {
+    try {
+      const newTodo = {
+        id: Math.random(),
+        title: todoText,
+        isDone: false,
+      };
+      if (newTodo.title !== "") {
+        const updatedTodos = [...todos, newTodo];
+        await AsyncStorage.setItem(storageKey, JSON.stringify(updatedTodos));
+        setTodos(updatedTodos);
+        setTodoText("");
+        Keyboard.dismiss();
+      }
+    } catch (e) {
+      console.error("Error Occurred:", e);
+    }
+  };
+
+  const deleteTodo = async (id: number) => {
+    try {
+      const newTodos = todos.filter((todo) => todo.id !== id);
+      await AsyncStorage.setItem(storageKey, JSON.stringify(newTodos));
+      setTodos(newTodos);
+      setTodoText("");
+    } catch (e) {
+      console.error("Error Occurred:", e);
+    }
+  };
+
+  const handleTodo = async (id: number) => {
+    try {
+      const newTodos = todos.map((todo) => {
+        if (todo.id === id) {
+          todo.isDone = !todo.isDone;
+        }
+        return todo;
+      });
+      await AsyncStorage.setItem(storageKey, JSON.stringify(newTodos));
+      setTodos(newTodos);
+      setTodoText("");
+    } catch (e) {
+      console.error("Error Occurred:", e);
+    }
+  };
+
+  const onSearch = (search: string) => {
+    if (search.trim() === "") {
+      setTodos(oldTodos);
+    } else {
+      if (search === "") {
+        setOldTodos(todos);
+      }
+      const filteredTodos = todos.filter((todo) =>
+        todo.title.toLowerCase().includes(search.toLowerCase())
+      );
+
+      setTodos(filteredTodos);
+    }
+  };
+
+  useEffect(() => {
+    onSearch(search);
+  }, [search]);
   return (
     <View style={style.container}>
       <View style={style.header}>
+        <TouchableOpacity onPress={() => {}}>
+          <Ionicons name="menu" size={24} color={"#333"} />
+        </TouchableOpacity>
         <TouchableOpacity onPress={() => {}}>
           <Image
             source={{ uri: "https://xsgames.co/randomusers/avatar.php?g=male" }}
@@ -54,24 +124,71 @@ const HomeScreen = () => {
         </TouchableOpacity>
       </View>
       <View style={style.searchBar}>
+        <Ionicons name="search" size={24} color={"#333"} />
         <TextInput
           placeholder="Search"
-          style={style.searchBar}
+          style={style.searchInput}
           clearButtonMode="always"
+          onChangeText={(text) => onSearch(text)}
         />
       </View>
       <FlatList
-        data={todoData}
+        data={[...todos].reverse()}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
-          <View>
-            <Text>{item.title}</Text>
-          </View>
+          <TodoItem
+            todo={item}
+            deleteTodo={deleteTodo}
+            handleTodo={handleTodo}
+          />
         )}
       />
+      <KeyboardAvoidingView style={style.footer}>
+        <TextInput
+          placeholder="Add New Todo"
+          value={todoText}
+          style={style.newTodoInput}
+          onChangeText={(text) => setTodoText(text)}
+        />
+        <TouchableOpacity style={style.addButton} onPress={() => addTodo()}>
+          <Ionicons name="add" size={34} color={"#fff"} />
+        </TouchableOpacity>
+      </KeyboardAvoidingView>
     </View>
   );
 };
+
+const TodoItem = ({
+  todo,
+  deleteTodo,
+  handleTodo,
+}: {
+  todo: TodoType;
+  deleteTodo: (id: number) => void;
+  handleTodo: (id: number) => void;
+}) => (
+  <View style={style.todoContainer}>
+    <View style={style.todoInfoContainer}>
+      <Checkbox
+        style={style.checkbox}
+        color={todo.isDone ? "#333" : undefined}
+        value={todo.isDone}
+        onValueChange={() => handleTodo(todo.id)}
+      />
+      <Text
+        style={[
+          style.todoText,
+          todo.isDone && { textDecorationLine: "line-through" },
+        ]}
+      >
+        {todo.title}
+      </Text>
+    </View>
+    <TouchableOpacity onPress={() => deleteTodo(todo.id)}>
+      <Ionicons name="trash" size={24} color={"#333"} />
+    </TouchableOpacity>
+  </View>
+);
 
 const style = StyleSheet.create({
   container: {
@@ -88,15 +205,54 @@ const style = StyleSheet.create({
   },
   searchBar: {
     backgroundColor: "white",
-    padding: 16,
+    paddingVertical: 5,
+    paddingHorizontal: 10,
     borderRadius: 10,
     gap: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 20,
   },
   searchInput: {
     flex: 1,
     fontSize: 16,
     color: "#333",
   },
+  todoContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    backgroundColor: "#fff",
+    padding: 16,
+    borderRadius: 10,
+    marginBottom: 20,
+  },
+  todoInfoContainer: { flexDirection: "row", gap: 20, alignContent: "center" },
+  todoText: {
+    fontSize: 16,
+    color: "#333",
+  },
+  footer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingBottom: Platform.OS === "android" ? 30 : 0,
+  },
+  newTodoInput: {
+    flex: 1,
+    backgroundColor: "#fff",
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    fontSize: 16,
+    color: "#333",
+  },
+  addButton: {
+    backgroundColor: "#333",
+    padding: 8,
+    borderRadius: 10,
+    marginLeft: 16,
+  },
+  checkbox: {},
 });
 
 export default HomeScreen;
