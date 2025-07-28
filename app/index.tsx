@@ -15,6 +15,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Checkbox from "expo-checkbox";
+import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 
 type TodoType = {
@@ -25,6 +26,7 @@ type TodoType = {
 
 const HomeScreen = () => {
   const storageKey: string = "my-todos";
+  const router = useRouter();
 
   const [todos, setTodos] = useState<TodoType[]>([]);
   const [todoText, setTodoText] = useState<string>("");
@@ -110,19 +112,32 @@ const HomeScreen = () => {
   useEffect(() => {
     onSearch(search);
   }, [search]);
+
   return (
     <View style={style.container}>
+      {/* App Bar */}
       <View style={style.header}>
+        {/* Menu / Drawer */}
         <TouchableOpacity onPress={() => {}}>
           <Ionicons name="menu" size={24} color={"#333"} />
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => {}}>
+
+        {/* Profile Icon */}
+        <TouchableOpacity
+          onPress={() => {
+            router.push("/profile");
+          }}
+        >
           <Image
-            source={{ uri: "https://xsgames.co/randomusers/avatar.php?g=male" }}
+            source={{
+              uri: "https://xsgames.co/randomusers/avatar.php?g=male",
+            }}
             style={{ width: 40, height: 40, borderRadius: 20 }}
           />
         </TouchableOpacity>
       </View>
+
+      {/* Search Bar */}
       <View style={style.searchBar}>
         <Ionicons name="search" size={24} color={"#333"} />
         <TextInput
@@ -132,6 +147,8 @@ const HomeScreen = () => {
           onChangeText={(text) => onSearch(text)}
         />
       </View>
+
+      {/* Todo List */}
       <FlatList
         data={[...todos].reverse()}
         keyExtractor={(item) => item.id.toString()}
@@ -143,6 +160,8 @@ const HomeScreen = () => {
           />
         )}
       />
+
+      {/* Add Todo */}
       <KeyboardAvoidingView style={style.footer}>
         <TextInput
           placeholder="Add New Todo"
@@ -170,7 +189,6 @@ const TodoItem = ({
   <View style={style.todoContainer}>
     <View style={style.todoInfoContainer}>
       <Checkbox
-        style={style.checkbox}
         color={todo.isDone ? "#333" : undefined}
         value={todo.isDone}
         onValueChange={() => handleTodo(todo.id)}
@@ -252,7 +270,11 @@ const style = StyleSheet.create({
     borderRadius: 10,
     marginLeft: 16,
   },
-  checkbox: {},
+  centered: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
 });
 
 export default HomeScreen;
