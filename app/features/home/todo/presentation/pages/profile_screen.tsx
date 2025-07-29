@@ -6,6 +6,7 @@ import {
   Platform,
   StatusBar,
   StyleSheet,
+  Text,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -22,6 +23,9 @@ const ProfileScreen = () => {
         >
           <Ionicons name="arrow-back" size={24} color={"#333"} />
         </TouchableOpacity>
+        <View style={style.textWrapper}>
+          <Text style={style.text}>User Profile</Text>
+        </View>
       </View>
       <Image
         source={{
@@ -49,6 +53,14 @@ const style = StyleSheet.create({
     width: "100%",
     height: 300,
     borderRadius: 20,
+  },
+  textWrapper: {
+    flex: 1,
+    alignItems: "center",
+  },
+  text: {
+    fontSize: 20,
+    fontWeight: "bold",
   },
 });
 
